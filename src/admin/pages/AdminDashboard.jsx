@@ -81,8 +81,91 @@ function severityDot(s) {
   return map[s] || '#a8a29e'
 }
 
+import { useState, useEffect } from 'react'
+import { api } from '../../utils/api'
+import { useAdminAuth } from '../context/AdminAuthContext'
+
 // ─── Component ────────────────────────────────────────────────────────────────
 function AdminDashboard() {
+  const { adminUser } = useAdminAuth()
+  const [liveStats, setLiveStats] = useState(null)
+
+  useEffect(() => {
+    api.getAdminDashboardStats().then(setLiveStats).catch(() => {})
+  }, [])
+
+  const currentOfficer = adminUser || adminOfficer
+
+  const dynamicPendingCards = [
+    {
+      label: 'Applications',
+      value: liveStats ? liveStats.pendingApplications : pendingApplications.length,
+      icon: AssignmentOutlined,
+      color: '#d97706',
+      bg: '#fffbeb',
+      border: '#fcd34d',
+    },
+    {
+      label: 'Company Verifications',
+      value: liveStats ? liveStats.pendingCompanyVerifications : pendingVerifications,
+      icon: FactCheckOutlined,
+      color: '#0284c7',
+      bg: '#f0f9ff',
+      border: '#bae6fd',
+    },
+    {
+      label: 'Credits in Queue',
+      value: liveStats ? liveStats.pendingCreditApprovals : pendingCredits,
+      icon: AccountBalanceWalletOutlined,
+      color: '#7c3aed',
+      bg: '#faf5ff',
+      border: '#e9d5ff',
+    },
+    {
+      label: 'Flagged Monitoring',
+      value: flaggedProjects,
+      icon: ErrorOutlined,
+      color: '#dc2626',
+      bg: '#fff5f5',
+      border: '#fecaca',
+    },
+  ]
+
+  const dynamicStatCards = [
+    {
+      label: 'Active Enterprises',
+      value: liveStats ? liveStats.totalCompanies : totalActiveProjects,
+      color: '#16a34a',
+      bg: '#f0fdf4',
+      border: '#bbf7d0',
+      icon: ForestOutlined,
+    },
+    {
+      label: 'Credits Issued',
+      value: liveStats ? liveStats.totalCreditsIssued.toLocaleString('en-IN') : totalCreditsIssued.toLocaleString('en-IN'),
+      color: '#0284c7',
+      bg: '#f0f9ff',
+      border: '#bae6fd',
+      icon: TrendingUpOutlined,
+    },
+    {
+      label: 'Land Allocated (ha)',
+      value: liveStats ? `${liveStats.totalLandAllocatedHectares}` : `${totalLand.toFixed(1)}`,
+      color: '#7c3aed',
+      bg: '#faf5ff',
+      border: '#e9d5ff',
+      icon: ForestOutlined,
+    },
+    {
+      label: 'Available Parcels',
+      value: liveStats ? liveStats.totalAvailableParcels : totalPendingParcels,
+      color: '#d97706',
+      bg: '#fffbeb',
+      border: '#fcd34d',
+      icon: AssignmentOutlined,
+    },
+  ]
+
   return (
     <Box>
       {/* Page header */}
@@ -113,21 +196,21 @@ function AdminDashboard() {
               spacing={2}
             >
               <Avatar sx={{ bgcolor: '#f59e0b', color: '#1c1917', width: { xs: 44, sm: 52 }, height: { xs: 44, sm: 52 }, fontWeight: 700, fontSize: '1.2rem', flexShrink: 0 }}>
-                {adminOfficer.avatar}
+                {currentOfficer.avatar || 'A'}
               </Avatar>
               <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                 <Typography sx={{ color: '#fef3c7', fontWeight: 700, fontSize: { xs: '0.92rem', sm: '1rem' } }}>
-                  {adminOfficer.name}
+                  {currentOfficer.name}
                 </Typography>
                 <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.78rem' }}>
-                  {adminOfficer.role} · {adminOfficer.employeeId}
+                  {currentOfficer.role} · {currentOfficer.employeeId}
                 </Typography>
                 <Typography sx={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.72rem', display: { xs: 'none', sm: 'block' } }}>
-                  {adminOfficer.ministry}
+                  {currentOfficer.ministry}
                 </Typography>
               </Box>
               <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                <Chip label={adminOfficer.region} size="small" sx={{ bgcolor: 'rgba(245,158,11,0.2)', color: '#fcd34d', fontWeight: 600, fontSize: '0.68rem', height: 22 }} />
+                <Chip label={currentOfficer.region} size="small" sx={{ bgcolor: 'rgba(245,158,11,0.2)', color: '#fcd34d', fontWeight: 600, fontSize: '0.68rem', height: 22 }} />
                 <Chip label="● Active" size="small" sx={{ bgcolor: 'rgba(34,197,94,0.15)', color: '#4ade80', fontWeight: 600, fontSize: '0.68rem', height: 22 }} />
               </Stack>
             </Stack>
@@ -140,7 +223,7 @@ function AdminDashboard() {
         Pending Actions
       </Typography>
       <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }} sx={{ mb: { xs: 2.5, sm: 3 } }}>
-        {pendingCards.map((card, i) => {
+        {dynamicPendingCards.map((card, i) => {
           const Icon = card.icon
           return (
             <Grid item xs={12} sm={6} md={3} lg={3} key={card.label}>
@@ -179,7 +262,7 @@ function AdminDashboard() {
         System Statistics
       </Typography>
       <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }} sx={{ mb: { xs: 2.5, sm: 3 } }}>
-        {statCards.map((s, i) => {
+        {dynamicStatCards.map((s, i) => {
           const Icon = s.icon
           return (
             <Grid item xs={12} sm={6} md={3} lg={3} key={s.label}>

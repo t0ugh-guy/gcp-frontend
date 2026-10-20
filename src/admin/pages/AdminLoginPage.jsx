@@ -42,13 +42,12 @@ function AdminLoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    await Promise.resolve()
-    const ok = adminLogin(username.trim(), password)
-    if (ok) {
+    const res = await adminLogin(username.trim(), password)
+    if (res && res.success) {
       navigate('/admin/dashboard', { replace: true })
       return
     }
-    setError('Invalid admin credentials. Access restricted.')
+    setError(res?.error || 'Invalid admin credentials. Access restricted.')
     setLoading(false)
   }
 

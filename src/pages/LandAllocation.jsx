@@ -9,6 +9,7 @@ import LocationOn from '@mui/icons-material/LocationOn'
 import MapOutlined from '@mui/icons-material/MapOutlined'
 import PublicOutlined from '@mui/icons-material/PublicOutlined'
 import RoomOutlined from '@mui/icons-material/RoomOutlined'
+import VerifiedUserOutlined from '@mui/icons-material/VerifiedUserOutlined'
 import {
   Alert,
   AlertTitle,
@@ -34,14 +35,23 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { motion } from 'framer-motion'
 import React from 'react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import ParcelMapDialog from '../components/ParcelMapDialog'
 import { useAuth } from '../context/AuthContext'
 import { companies, GLOBAL_AVAILABLE_PARCELS } from '../data/companies'
+import { api } from '../utils/api'
+
+const RANK_LIMITS = {
+  PLATINUM: 50.0,
+  GOLD: 25.0,
+  SILVER: 15.0,
+  BRONZE: 5.0,
+}
 
 function LandAllocation() {
   const { currentUser } = useAuth()
@@ -59,6 +69,9 @@ function LandAllocation() {
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [selectedParcelForMap, setSelectedParcelForMap] = useState(null)
 
+  const companyRank = currentUser?.rank || 'SILVER'
+  const maxAllowedArea = RANK_LIMITS[companyRank] || 15.0
+
   const handleViewOnMap = (parcel) => {
     setSelectedParcelForMap(parcel)
   }
@@ -73,6 +86,7 @@ function LandAllocation() {
 
     const areaMatch =
       selectedArea === 'All' ||
+      (selectedArea === 'Eligible' && parcel.area <= maxAllowedArea) ||
       (selectedArea === '<10' && parcel.area < 10) ||
       (selectedArea === '10-20' && parcel.area >= 10 && parcel.area <= 20) ||
       (selectedArea === '>20' && parcel.area > 20)
@@ -100,12 +114,28 @@ function LandAllocation() {
     setSelectedDegradation('All')
   }
 
-  const handleApply = (parcelId) => {
-    setAppliedParcelIds((prev) => {
-      const updated = prev.includes(parcelId) ? prev : [...prev, parcelId]
-      sessionStorage.setItem('gcp_applied_parcels', JSON.stringify(updated))
-      return updated
-    })
+  const handleApply = async (parcel) => {
+    if (parcel.area > maxAllowedArea) {
+      setApplicationMessage(`Application blocked: Parcel size (${parcel.area} ha) exceeds your company's ${companyRank} tier limit (${maxAllowedArea} ha).`)
+      setSnackbarOpen(true)
+      return
+    }
+
+    try {
+      if (currentUser?.id) {
+        await api.applyForParcel(currentUser.id, parcel.id)
+      }
+      setAppliedParcelIds((prev) => {
+        const updated = prev.includes(parcel.id) ? prev : [...prev, parcel.id]
+        sessionStorage.setItem('gcp_applied_parcels', JSON.stringify(updated))
+        return updated
+      })
+      setApplicationMessage(`Application successfully submitted for ${parcel.id}. Under review by ICFRE / MoEFCC Nodal Officer.`)
+      setSnackbarOpen(true)
+    } catch (e) {
+      setApplicationMessage(e.message || `Could not submit an application for ${parcel.id}.`)
+      setSnackbarOpen(true)
+    }
   }
 
   const appliedParcels = useMemo(
@@ -119,13 +149,6 @@ function LandAllocation() {
   const availableParcels = filteredParcels.filter(
     (parcel) => !appliedParcelIds.includes(parcel.id),
   )
-
-  const openApplicationToast = (parcelId) => {
-    setApplicationMessage(
-      `Application submitted for ${parcelId}. Under review by ICFRE, Dehradun. You will be notified within 15 working days.`,
-    )
-    setSnackbarOpen(true)
-  }
 
   const degradationColors = {
     Low: 'success',
@@ -352,10 +375,7 @@ function LandAllocation() {
                           fullWidth
                           disabled={appliedParcelIds.includes(p.id)}
                           sx={appliedParcelIds.includes(p.id) ? { opacity: 0.6 } : undefined}
-                          onClick={() => {
-                            handleApply(p.id)
-                            openApplicationToast(p.id)
-                          }}
+                          onClick={() => handleApply(p)}
                         >
                           {appliedParcelIds.includes(p.id)
                             ? 'Application Submitted'

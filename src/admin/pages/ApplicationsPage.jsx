@@ -31,6 +31,7 @@ import {
 } from '@mui/material'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { api } from '../../utils/api'
 import { pendingApplications } from '../data/adminData'
 
 function StatusChip({ status }) {
@@ -57,11 +58,36 @@ function ApplicationsPage() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setApplications(pendingApplications.map((a) => ({ ...a })))
-      setLoading(false)
-    }, 900)
-    return () => clearTimeout(timer)
+    let isMounted = true
+    api.getAdminApplications()
+      .then((data) => {
+        if (!isMounted) return
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((item) => ({
+            id: item.id ? `APP-${item.id}` : item.applicationId,
+            companyName: item.company?.name || item.companyName || 'Enterprise',
+            sector: item.company?.sector || 'Industrial',
+            parcelId: item.parcel?.id || item.parcelId || 'GCP-PARCEL',
+            area: item.parcel?.areaHectares || item.area || 10,
+            state: item.parcel?.state || item.state || 'National',
+            appliedOn: item.appliedAt ? new Date(item.appliedAt).toISOString().split('T')[0] : '2026-03-01',
+            status: item.status === 'APPROVED' ? 'Approved' : item.status === 'REJECTED' ? 'Rejected' : 'Pending',
+            rawId: item.id,
+          }))
+          setApplications(mapped)
+        } else {
+          setApplications(pendingApplications.map((a) => ({ ...a })))
+        }
+        setLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setApplications(pendingApplications.map((a) => ({ ...a })))
+        setLoading(false)
+      })
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   const filtered = applications.filter(
@@ -74,22 +100,35 @@ function ApplicationsPage() {
   const openDialog = (type, app) => setDialog({ open: true, type, app })
   const closeDialog = () => setDialog({ open: false, type: '', app: null })
 
-  const handleAction = () => {
+  const handleAction = async () => {
     const { type, app } = dialog
+    const isApprove = type === 'approve'
+
+    try {
+      const targetId = app.rawId || app.id
+      await api.decideApplication(targetId, {
+        approve: isApprove,
+        officerName: 'Admin Officer',
+        reason: isApprove ? 'Approved by ICFRE / MoEFCC Nodal Officer' : 'Application declined by Nodal Officer',
+      })
+    } catch (err) {
+      console.warn('API application decision note:', err.message)
+    }
+
     setApplications((prev) =>
       prev.map((a) =>
         a.id === app.id
-          ? { ...a, status: type === 'approve' ? 'Approved' : 'Rejected' }
+          ? { ...a, status: isApprove ? 'Approved' : 'Rejected' }
           : a,
       ),
     )
     setSnackbar({
       open: true,
       message:
-        type === 'approve'
+        isApprove
           ? `✅ Application ${app.id} approved — parcel assigned to ${app.companyName}`
           : `❌ Application ${app.id} rejected`,
-      severity: type === 'approve' ? 'success' : 'error',
+      severity: isApprove ? 'success' : 'error',
     })
     closeDialog()
   }

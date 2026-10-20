@@ -9,6 +9,7 @@ import CreditsDashboard from './pages/CreditsDashboard'
 import LandAllocation from './pages/LandAllocation'
 import LoginPage from './pages/LoginPage'
 import WaterCredits from './pages/WaterCredits'
+import RegisterPage from './pages/RegisterPage'
 import AdminRoutes from './admin/AdminRoutes'
 
 function RootRedirect() {
@@ -22,6 +23,7 @@ function App() {
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
       {/* Admin Portal — completely isolated */}
       <Route path="/admin/*" element={<AdminRoutes />} />

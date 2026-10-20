@@ -52,14 +52,14 @@ function LoginPage() {
 
     await Promise.resolve()
 
-    const isAuthenticated = login(username.trim(), password)
+    const result = await login(username.trim(), password)
 
-    if (isAuthenticated) {
+    if (result && result.success) {
       navigate('/dashboard', { replace: true })
       return
     }
 
-    setError('Invalid credentials. Please try again.')
+    setError(result?.error || 'Invalid credentials. Please try again.')
     setLoading(false)
   }
 
@@ -210,6 +210,23 @@ function LoginPage() {
             >
               Login to Portal
             </LoadingButton>
+
+            <Button
+              onClick={() => navigate('/register')}
+              variant="contained"
+              fullWidth
+              size="medium"
+              sx={{
+                mb: 1.5,
+                bgcolor: '#059669',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                '&:hover': { bgcolor: '#047857' },
+              }}
+            >
+              New Enterprise? Register with GSTIN / CIN
+            </Button>
 
             <Button
               onClick={() => navigate('/admin/login')}
