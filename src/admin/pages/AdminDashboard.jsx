@@ -46,20 +46,7 @@ const pendingVerifications = verificationRecords.filter(
   (v) => v.status !== 'Approved' && !v.flagged,
 ).length
 
-// ─── Card configs ─────────────────────────────────────────────────────────────
-const pendingCards = [
-  { label: 'Applications', value: pendingApplications.length, icon: AssignmentOutlined, color: '#d97706', bg: '#fffbeb', border: '#fcd34d' },
-  { label: 'Verifications', value: pendingVerifications, icon: FactCheckOutlined, color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
-  { label: 'Credits', value: pendingCredits, icon: AccountBalanceWalletOutlined, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
-  { label: 'Flagged', value: flaggedProjects, icon: ErrorOutlined, color: '#dc2626', bg: '#fff5f5', border: '#fecaca' },
-]
 
-const statCards = [
-  { label: 'Active Projects', value: totalActiveProjects, color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: ForestOutlined },
-  { label: 'Credits Issued', value: totalCreditsIssued.toLocaleString('en-IN'), color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd', icon: TrendingUpOutlined },
-  { label: 'Land (ha)', value: `${totalLand.toFixed(1)}`, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', icon: ForestOutlined },
-  { label: 'Pending Parcels', value: totalPendingParcels, color: '#d97706', bg: '#fffbeb', border: '#fcd34d', icon: AssignmentOutlined },
-]
 
 const sectorData = [
   { name: 'Energy', value: 2 },

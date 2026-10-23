@@ -39,8 +39,7 @@ import {
   Typography,
 } from '@mui/material'
 import { motion } from 'framer-motion'
-import React from 'react'
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import ParcelMapDialog from '../components/ParcelMapDialog'
 import { useAuth } from '../context/AuthContext'
 import { companies, GLOBAL_AVAILABLE_PARCELS } from '../data/companies'
@@ -58,7 +57,7 @@ function LandAllocation() {
   const [selectedState, setSelectedState] = useState('All')
   const [selectedArea, setSelectedArea] = useState('All')
   const [selectedDegradation, setSelectedDegradation] = useState('All')
-  const [appliedParcelIds, setAppliedParcelIds] = React.useState(() => {
+  const [appliedParcelIds, setAppliedParcelIds] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem('gcp_applied_parcels') || '[]')
     } catch {

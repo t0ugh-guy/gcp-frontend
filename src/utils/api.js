@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8080/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
 export function getCompanyToken() {
   return localStorage.getItem('gcp_token') || sessionStorage.getItem('gcp_token')
@@ -82,6 +82,14 @@ export const api = {
       body: JSON.stringify({ companyId, parcelId }),
     }),
 
+  // Redemptions
+  getRedemptionOptions: () => apiRequest('/redemptions/options', { method: 'GET' }),
+  requestRedemption: (companyId, option) =>
+    apiRequest('/redemptions', {
+      method: 'POST',
+      body: JSON.stringify({ companyId, option }),
+    }),
+
   // Admin Endpoints
   getAdminDashboardStats: () =>
     apiRequest('/admin/dashboard/stats', { method: 'GET' }, 'admin'),
@@ -116,6 +124,12 @@ export const api = {
   getAdminCredits: (status) =>
     apiRequest(`/admin/credits${status ? '?status=' + status : ''}`, { method: 'GET' }, 'admin'),
 
+  calculateCredits: (req) =>
+    apiRequest('/admin/credits/calculate', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }, 'admin'),
+
   decideCredits: (id, decision) =>
     apiRequest(`/admin/credits/${id}/decision`, {
       method: 'PUT',
@@ -129,6 +143,15 @@ export const api = {
     apiRequest('/admin/parcels', {
       method: 'POST',
       body: JSON.stringify(parcelData),
+    }, 'admin'),
+
+  getAdminRedemptions: (status) =>
+    apiRequest(`/admin/redemptions${status ? '?status=' + status : ''}`, { method: 'GET' }, 'admin'),
+
+  decideRedemption: (id, decision) =>
+    apiRequest(`/admin/redemptions/${id}/decision`, {
+      method: 'PUT',
+      body: JSON.stringify(decision),
     }, 'admin'),
 
   getAdminAudits: () =>

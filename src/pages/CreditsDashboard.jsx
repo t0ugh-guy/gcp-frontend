@@ -7,6 +7,7 @@ import RedeemOutlined from '@mui/icons-material/RedeemOutlined'
 import SavingsOutlined from '@mui/icons-material/SavingsOutlined'
 import VerifiedOutlined from '@mui/icons-material/VerifiedOutlined'
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -28,31 +29,33 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
+import { LoadingButton } from '@mui/lab'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../utils/api'
 
 const redemptionOptions = [
   {
-    id: 'offset-project',
+    id: 'CARBON_OFFSET_CERTIFICATE',
     title: 'Carbon Offset Certificate',
     description: 'Redeem credits to offset verified corporate emissions.',
     requiredCredits: 100,
   },
   {
-    id: 'esg-report',
+    id: 'ESG_REPORTING_CLAIM',
     title: 'ESG Reporting Claim',
     description: 'Apply credits for annual sustainability declarations.',
     requiredCredits: 150,
   },
   {
-    id: 'compliance',
+    id: 'COMPLIANCE_ADJUSTMENT',
     title: 'Compliance Adjustment',
     description: 'Redeem credits toward environmental compliance metrics.',
     requiredCredits: 200,
   },
   {
-    id: 'neutralization',
+    id: 'NET_ZERO_NEUTRALIZATION',
     title: 'Net-Zero Neutralization',
     description: 'Use credits for long-term net-zero milestone accounting.',
     requiredCredits: 250,
@@ -60,8 +63,10 @@ const redemptionOptions = [
 ]
 
 function CreditsDashboard() {
-  const { currentUser } = useAuth()
+  const { currentUser, refreshUserData } = useAuth()
   const [selectedOption, setSelectedOption] = useState(null)
+  const [redeeming, setRedeeming] = useState(false)
+  const [redemptionResult, setRedemptionResult] = useState(null)
 
   const availableCredits = currentUser.credits.earned - currentUser.credits.redeemed
 
@@ -130,6 +135,31 @@ function CreditsDashboard() {
       return 'warning'
     }
     return 'default'
+  }
+
+  const handleConfirmRedemption = async () => {
+    if (!selectedOption || !currentUser?.id) return
+    setRedeeming(true)
+    try {
+      await api.requestRedemption(currentUser.id, selectedOption.id)
+      await refreshUserData()
+      setRedemptionResult({
+        success: true,
+        message: `Redemption request for ${selectedOption.title} (${selectedOption.requiredCredits} GC) submitted successfully. Awaiting Nodal Officer review.`,
+      })
+    } catch (err) {
+      setRedemptionResult({
+        success: false,
+        message: err.message || 'Redemption request failed. Please check available credit balance.',
+      })
+    } finally {
+      setRedeeming(false)
+    }
+  }
+
+  const handleCloseDialog = () => {
+    setSelectedOption(null)
+    setRedemptionResult(null)
   }
 
   return (
@@ -247,7 +277,10 @@ function CreditsDashboard() {
                           variant="contained"
                           size="small"
                           color="primary"
-                          onClick={() => setSelectedOption(option)}
+                          onClick={() => {
+                            setRedemptionResult(null)
+                            setSelectedOption(option)
+                          }}
                         >
                           Redeem
                         </Button>
@@ -294,15 +327,61 @@ function CreditsDashboard() {
         </Card>
       </Stack>
 
-      <Dialog open={Boolean(selectedOption)} onClose={() => setSelectedOption(null)}>
-        <DialogTitle>Confirm Redemption</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Redemption request submitted. You will be notified within 7 working days by the nodal officer.
-          </Typography>
+      <Dialog open={Boolean(selectedOption)} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: '#14532d' }}>
+          {redemptionResult ? 'Redemption Status' : 'Confirm Credit Redemption'}
+        </DialogTitle>
+        <DialogContent dividers>
+          {redemptionResult ? (
+            <Alert severity={redemptionResult.success ? 'success' : 'error'}>
+              {redemptionResult.message}
+            </Alert>
+          ) : selectedOption ? (
+            <Stack spacing={2}>
+              <Typography variant="body1">
+                Are you sure you want to request redemption of <strong>{selectedOption.title}</strong>?
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {selectedOption.description}
+              </Typography>
+              <Box sx={{ p: 2, bgcolor: '#f0fdf4', borderRadius: 2, border: '1px solid #bbf7d0' }}>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">Cost:</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#15803d' }}>
+                    {selectedOption.requiredCredits} Green Credits
+                  </Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Your Available Balance:</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    {availableCredits} GC
+                  </Typography>
+                </Stack>
+              </Box>
+            </Stack>
+          ) : null}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedOption(null)}>Close</Button>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          {redemptionResult ? (
+            <Button onClick={handleCloseDialog} variant="contained" color="primary">
+              Close
+            </Button>
+          ) : (
+            <>
+              <Button onClick={handleCloseDialog} color="inherit">
+                Cancel
+              </Button>
+              <LoadingButton
+                onClick={handleConfirmRedemption}
+                variant="contained"
+                color="primary"
+                loading={redeeming}
+                disabled={availableCredits < (selectedOption?.requiredCredits || 0)}
+              >
+                Confirm Redemption
+              </LoadingButton>
+            </>
+          )}
         </DialogActions>
       </Dialog>
     </motion.div>

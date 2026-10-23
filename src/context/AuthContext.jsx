@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import { api } from '../utils/api'
 import { companies as mockCompanies } from '../data/companies'
 
@@ -126,7 +126,7 @@ export function AuthProvider({ children }) {
     return enriched
   }
 
-  const login = async (username, password) => {
+  const login = useCallback(async (username, password) => {
     try {
       // 1. Try real backend authentication first
       const authRes = await api.login(username, password)
@@ -146,15 +146,15 @@ export function AuthProvider({ children }) {
       const errorMsg = err.message || 'Invalid credentials'
       return { success: false, error: errorMsg }
     }
-  }
+  }, [])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('gcp_token')
     localStorage.removeItem('gcp_user')
     setCurrentUser(null)
-  }
+  }, [])
 
-  const refreshUserData = async () => {
+  const refreshUserData = useCallback(async () => {
     if (!currentUser?.id) return
     try {
       const me = await api.getMe('company')
@@ -166,7 +166,7 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.warn('Could not refresh user data', e)
     }
-  }
+  }, [currentUser?.id])
 
   const value = useMemo(
     () => ({
@@ -175,7 +175,7 @@ export function AuthProvider({ children }) {
       logout,
       refreshUserData,
     }),
-    [currentUser],
+    [currentUser, login, logout, refreshUserData],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
